@@ -139,16 +139,8 @@ class WifiDriver:
 
             # Check if beacon comes from the AP we want to connect to
             if p.haslayer(Dot11Elt) and p.getlayer(Dot11Elt).info == self.ssid:
-                l = p.getlayer(Dot11Elt)
-
                 beacon = True
-                cap = p.cap
                 mac = p.addr3
-
-                while l:
-                    if l.ID == 1: # rates
-                        rates = l.info
-                    l = l.payload
                 self.log("Beacon from SSID=[%s] found (MAC=[%s])" % (self.ssid, mac))
 
         return mac

@@ -83,7 +83,7 @@ def showhelp():
     from types import ClassType
 
     print """\
--=- Access Point 802.11 STACK FUZZER -=-
+-=- WiFuzz: Access Point 802.11 STACK FUZZER -=-
 Syntax: python %s -s <ssid> [options] <fuzzer>(,<fuzzer>)*
 
 Available options:
