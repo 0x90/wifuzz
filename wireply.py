@@ -43,7 +43,7 @@ def waitForBeacon(ssid):
             mac = p.addr3
             print "[*] Beacon from SSID=[%s] found (MAC=[%s])" % (ssid, mac)
 
-    return mac, cap, rates
+    return mac
 
 def replypackets(pcapfile, sourcemac, ssid, start = 0, check = 100, outfile = None):
     print "[*] Reading packets..."
@@ -53,7 +53,7 @@ def replypackets(pcapfile, sourcemac, ssid, start = 0, check = 100, outfile = No
     print "[*] Starting reply from packet #%d, check every %d packets, source MAC %s" % (start, check, sourcemac)
     pkts = pkts[start:]
 
-    waitForBeacon(ssid)
+    destmac = waitForBeacon(ssid)
 
     print "[*] Sending packets..."
 
@@ -63,8 +63,10 @@ def replypackets(pcapfile, sourcemac, ssid, start = 0, check = 100, outfile = No
         if p is None or not p.haslayer(Dot11):
             continue
 
-        # Fix source MAC address
-        p.getlayer(Dot11).addr2 = sourcemac
+        # Fix source & destination MAC addresses
+        dot11 = p.getlayer(Dot11)
+        dot11.addr2 = sourcemac
+        dot11.addr1 = dot11.addr3 = destmac
 
         sendp(p)
 
