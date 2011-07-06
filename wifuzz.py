@@ -63,7 +63,7 @@ def main():
     fuzztype   = args[0]
     conf.iface = opts.get('i', DEFAULT_IFACE)
     ssid       = opts.get('s')
-    localmac   = str2mac(get_if_raw_hwaddr(DEFAULT_IFACE)[1])
+    localmac   = str2mac(get_if_raw_hwaddr(conf.iface)[1])
     testmode   = 't' in opts
 
     log("Target SSID: %s; Interface: %s; Test mode? %s; Fuzzer(s): %s;" % \
