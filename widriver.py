@@ -18,6 +18,7 @@
 
 import random
 import tempfile
+import time
 from types import ClassType
 
 from scapy.sendrecv import sniff
@@ -45,14 +46,16 @@ def skip_testmode(callee):
     return f
 
 class WifiDriver:
-    def __init__(self, ssid = None, apmac = None, localmac = None, verbose = 0, testmode = False):
-        self.ssid     = ssid                      # Target SSID
-        self.apmac    = apmac                     # MAC address of the Access Point
-        self.localmac = localmac                  # MAC address of the local Wi-Fi station
-        self.sn       = random.randint(0, 4096)   # Current 802.11 sequence number
-        self.verbose  = verbose                   # Verbosity level
-        self.tc       = []                        # Test-case packets
-        self.testmode = testmode
+    def __init__(self, ssid, tping, outdir, apmac = None, localmac = None, verbose = 0, testmode = False):
+        self.ssid      = ssid                      # Target SSID
+        self.tping     = tping                     # Ping timeout
+        self.outdir    = outdir                    # Destination directory for PCAP files
+        self.apmac     = apmac                     # MAC address of the Access Point
+        self.localmac  = localmac                  # MAC address of the local Wi-Fi station
+        self.sn        = random.randint(0, 4096)   # Current 802.11 sequence number
+        self.verbose   = verbose                   # Verbosity level
+        self.tc        = []                        # Test-case packets
+        self.testmode  = testmode
 
     def finalizePacket(self, p):
         """Finalize a packet (in place), before sending it on the wire."""
@@ -129,13 +132,14 @@ class WifiDriver:
 
         beacon = False
         mac = None
+        starttime = time.time()
 
         while not beacon:
             p = sniff(count=1, timeout=RECV_TIMEOUT)[0]
 
-            if p is None or len(p) == 0:
+            if p is None or len(p) == 0 or (time.time() - starttime) > self.tping:
                 # Timeout!
-                return None
+                raise WiExceptionTimeout("waitForBeacon() timeout exceeded!")
 
             # Check if beacon comes from the AP we want to connect to
             if p.haslayer(Dot11Elt) and p.getlayer(Dot11Elt).info == self.ssid:
@@ -199,17 +203,19 @@ class WifiDriver:
             self.log("[R%.5d] Checking if the AP is still up..." % roundz)
             try:
                 mac = self.waitForBeacon()
+            except WiExceptionTimeout, e:
+                mac = None
             except Exception, e:
                 print e
                 mac = None
 
             if mac is None:
                 #  Timeout! Write sent packets into a pcap file & exit
-                f = tempfile.NamedTemporaryFile(dir = "/dev/shm/", prefix = "wifuzz-", suffix = ".pcap", delete = False)
+                f = tempfile.NamedTemporaryFile(dir = self.outdir, prefix = "wifuzz-", suffix = ".pcap", delete = False)
                 pcapname = f.name
                 f.close()
                 wrpcap(pcapname, tc)
-                print "[!] The AP does not respond anymore. Latest test-case has been written to '%s'" % pcapname
+                self.log("[!] The AP does not respond anymore. Latest test-case has been written to '%s'" % pcapname)
                 exit(0)
 
     @skip_testmode

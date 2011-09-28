@@ -39,16 +39,17 @@ from scapy.utils import *
 from scapy.all import get_if_raw_hwaddr
 conf.verb=0
 
-from   common import log
-from   widriver  import  WifiDriver
+from   common   import log, WiExceptionTimeout
+from   widriver import  WifiDriver
 import wifuzzers
 
-DEFAULT_IFACE = "wlan0"
-SNIFF_TIMEOUT = 20
+DEFAULT_IFACE       = "wlan0"
+DEFAULT_PCAP_DIR    = "/dev/shm"
+DEFAULT_PING_TIMOUT = 60
 
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hi:s:t")
+        opts, args = getopt.getopt(sys.argv[1:], "hi:o:p:s:t")
     except getopt.GetoptError, e:
         print str(e)
         showhelp()
@@ -60,20 +61,27 @@ def main():
         showhelp()
         exit(0)
 
-    fuzztype   = args[0]
-    conf.iface = opts.get('i', DEFAULT_IFACE)
-    ssid       = opts.get('s')
-    localmac   = str2mac(get_if_raw_hwaddr(conf.iface)[1])
-    testmode   = 't' in opts
+    fuzztype    = args[0]
+    conf.iface  = opts.get('i', DEFAULT_IFACE)
+    conf.tping  = opts.get('p', DEFAULT_PING_TIMOUT)
+    conf.outdir = opts.get('o', DEFAULT_PCAP_DIR)
+    ssid        = opts.get('s')
+    localmac    = str2mac(get_if_raw_hwaddr(conf.iface)[1])
+    testmode    = 't' in opts
 
-    log("Target SSID: %s; Interface: %s; Test mode? %s; Fuzzer(s): %s;" % \
-            (ssid, conf.iface, testmode, fuzztype), "MAIN")
+    log("Target SSID: %s; Interface: %s; Ping timeout: %d; PCAP directory: %s; Test mode? %s; Fuzzer(s): %s;" % \
+            (ssid, conf.iface, conf.tping, conf.outdir, testmode, fuzztype), "MAIN")
 
-    wifi = WifiDriver(ssid = ssid, localmac = localmac, 
-                      testmode = testmode, verbose = 1)
+    wifi = WifiDriver(ssid = ssid, tping = conf.tping, outdir = conf.outdir,
+                      localmac = localmac, testmode = testmode, verbose = 1)
 
     # Get the MAC address of the AP
-    mac = wifi.waitForBeacon()
+    try:
+        mac = wifi.waitForBeacon()
+    except WiExceptionTimeout, e:
+        log("No beacon from target AP after %d seconds" % conf.tping, "MAIN")
+        sys.exit(1)
+
     wifi.apmac = mac
 
     # Fuzz!
@@ -88,13 +96,15 @@ Syntax: python %s -s <ssid> [options] <fuzzer>(,<fuzzer>)*
 
 Available options:
 -h       Show this help screen
--i       Set network interface (default: %s)
+-i       Network interface (default: %s)
+-o       Output directory for PCAP files (default: %s)
+-p       Ping timeout (default: %d seconds)
 -s       Set target AP SSID
 -t       Enable test mode
 
 Remember to put your Wi-Fi card in monitor mode. Your driver must support
 traffic injection.
-""" % (sys.argv[0], DEFAULT_IFACE)
+""" % (sys.argv[0], DEFAULT_IFACE, DEFAULT_PCAP_DIR, DEFAULT_PING_TIMOUT)
 
     l = []
     for m in dir(wifuzzers):
