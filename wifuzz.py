@@ -64,11 +64,21 @@ def main():
     fuzztype    = args[0]
     conf.iface  = opts.get('i', DEFAULT_IFACE)
     conf.tping  = opts.get('p', DEFAULT_PING_TIMOUT)
+
+    if not conf.tping.isdigit():
+        log("[!] Ping timeout (-p) must be a valid integer", "MAIN")
+        exit(2)
+
+    conf.tping = int(conf.tping)
+    if conf.tping <= 0:
+        log("[!] Ping timeout (-p) must be greater than zero", "MAIN")
+        exit(2)
+
     conf.outdir = opts.get('o', DEFAULT_PCAP_DIR)
     ssid        = opts.get('s')
     localmac    = str2mac(get_if_raw_hwaddr(conf.iface)[1])
     testmode    = 't' in opts
-
+    
     log("Target SSID: %s; Interface: %s; Ping timeout: %d; PCAP directory: %s; Test mode? %s; Fuzzer(s): %s;" % \
             (ssid, conf.iface, conf.tping, conf.outdir, testmode, fuzztype), "MAIN")
 
