@@ -45,7 +45,7 @@ import wifuzzers
 
 DEFAULT_IFACE       = "wlan0"
 DEFAULT_PCAP_DIR    = "/dev/shm"
-DEFAULT_PING_TIMOUT = 60
+DEFAULT_PING_TIMOUT = "60"
 
 def main():
     try:
