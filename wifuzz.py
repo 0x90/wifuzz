@@ -114,7 +114,7 @@ Available options:
 
 Remember to put your Wi-Fi card in monitor mode. Your driver must support
 traffic injection.
-""" % (sys.argv[0], DEFAULT_IFACE, DEFAULT_PCAP_DIR, DEFAULT_PING_TIMOUT)
+""" % (sys.argv[0], DEFAULT_IFACE, DEFAULT_PCAP_DIR, int(DEFAULT_PING_TIMOUT))
 
     l = []
     for m in dir(wifuzzers):
